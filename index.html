@@ -6,7 +6,7 @@
     <title>Fit Frenzy - Arcade Fitness Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* RESET Y ESTILOS BASE DEL JUEGO (se mantienen) */
+        /* RESET Y ESTILOS BASE DEL JUEGO */
         * {
             margin: 0;
             padding: 0;
@@ -50,7 +50,7 @@
             z-index: 5;
         }
         
-        /* UI flotante del juego (se mantiene) */
+        /* UI flotante del juego */
         #ui {
             position: absolute;
             top: 12px;
@@ -202,7 +202,7 @@
             border: 1px solid gold;
         }
         
-        /* ===== NUEVO MENÚ PIXELADO (reemplaza startScreen) ===== */
+        /* ===== NUEVO MENÚ PIXELADO CON LLUVIA DE COMIDA ===== */
         .pixel-menu {
             position: absolute;
             top: 0;
@@ -227,27 +227,18 @@
             z-index: 0;
         }
         
-        /* Sprites cayendo en el menú */
-        .fruit {
+        /* Elementos de comida cayendo (lluvia) */
+        .food-rain {
             position: absolute;
-            width: 48px;
-            height: 48px;
-            image-rendering: pixelated;
+            pointer-events: none;
+            z-index: 2;
+            will-change: transform;
             animation: fall linear infinite;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 1;
         }
-        .cake { background-image: url("cake.png"); }
-        .broccoli { background-image: url("broccoli.png"); }
-        .cookie { background-image: url("cookie.png"); }
-        .proteinna { background-image: url("proteinna.png"); }
-        .dona { background-image: url("dona.png"); }
         
         @keyframes fall {
-            0% { transform: translateY(-60px); }
-            100% { transform: translateY(110vh); }
+            0% { transform: translateY(-100px); opacity: 1; }
+            100% { transform: translateY(110vh); opacity: 0.8; }
         }
         
         .menu-content {
@@ -256,7 +247,7 @@
             left: 50%;
             transform: translate(-50%, -50%) scale(1.2);
             text-align: center;
-            z-index: 10;
+            z-index: 20;
             width: 90%;
         }
         
@@ -293,10 +284,10 @@
         @media (max-width: 700px), (max-height: 700px) {
             .title { font-size: 20px; margin-bottom: 30px; }
             .menu-button { padding: 12px 20px; font-size: 8px; width: 180px; margin: 15px auto; }
-            .fruit { width: 32px; height: 32px; }
+            .food-rain { width: 30px; height: 30px; }
         }
         
-        /* Ocultar controles táctiles del juego mientras se muestra el menú (no son necesarios) */
+        /* Ocultar controles táctiles del juego mientras se muestra el menú */
         #touchControls {
             display: none;
         }
@@ -325,10 +316,10 @@
     
     <div id="boostIndicator" class="boost-indicator">⚡ BOOST VELOCIDAD ⚡</div>
     
-    <!-- NUEVO MENÚ PIXELADO (reemplaza la pantalla de inicio anterior) -->
+    <!-- MENÚ PIXELADO CON LLUVIA DE COMIDA -->
     <div id="pixelMenu" class="pixel-menu">
         <div class="menu-background"></div>
-        <!-- Sprites generados por JS -->
+        <!-- Aquí se generarán dinámicamente los elementos de comida cayendo -->
         <div class="menu-content">
             <div class="title">FIT FRENZY</div>
             <button class="menu-button" id="menuJugar">JUGAR</button>
@@ -363,7 +354,7 @@
 </div>
 
 <script>
-    // ========== LISTAS DE ALIMENTOS ==========
+    // ========== LISTAS DE ALIMENTOS (mismas que en el juego) ==========
     const GOOD_FOODS = [
         { id: 'creatina', name: 'Creatina', color: '#c084fc', value: 20, shape: 'diamond', size: 28 },
         { id: 'proteina', name: 'Proteína', color: '#d878d8', value: 15, shape: 'circle', size: 25 },
@@ -388,7 +379,10 @@
         { id: 'pastel', name: 'Pastel', color: '#fdba74', value: -20, shape: 'triangle', size: 28 }
     ];
     
-    // Config responsive
+    // Unir todas las comidas para la lluvia (ambas listas)
+    const ALL_FOODS = [...GOOD_FOODS, ...BAD_FOODS];
+    
+    // Config responsive del canvas (juego)
     let canvas, ctx;
     let gameWidth = 800;
     let gameHeight = 1000;
@@ -613,13 +607,11 @@
     function startGame() {
         resetGame();
         gameState = 'playing';
-        // Ocultar menú pixelado y mostrar canvas + UI
         document.getElementById('pixelMenu').classList.add('hidden');
         canvas.style.display = 'block';
         uiContainer.style.display = 'flex';
         document.getElementById('pauseScreen').classList.add('hidden');
         document.getElementById('gameOverScreen').classList.add('hidden');
-        // Asegurar que el canvas tenga el tamaño correcto
         updateCanvasSize();
     }
     
@@ -711,18 +703,121 @@
         canvasElem.addEventListener('touchcancel', handleTouchEnd);
     }
     
-    // Generar sprites del menú (frutas cayendo)
-    function generateMenuSprites() {
-        const items = ["cake","broccoli","cookie","proteinna","dona"];
-        const menuDiv = document.getElementById('pixelMenu');
-        for(let i=0;i<30;i++){
-            let fruit = document.createElement("div");
-            fruit.className = "fruit " + items[Math.floor(Math.random()*items.length)];
-            fruit.style.left = Math.random()*100 + "%";
-            fruit.style.animationDuration = (3 + Math.random()*3) + "s";
-            fruit.style.animationDelay = Math.random()*5 + "s";
-            menuDiv.appendChild(fruit);
+    // ========== EFECTO DE LLUVIA DE COMIDA EN EL MENÚ ==========
+    let rainInterval = null;
+    
+    function createFoodElement(food) {
+        const div = document.createElement('div');
+        div.className = 'food-rain';
+        // Tamaño entre 25 y 45px
+        const size = 30 + Math.random() * 20;
+        div.style.width = `${size}px`;
+        div.style.height = `${size}px`;
+        div.style.left = Math.random() * 100 + '%';
+        // Duración entre 3 y 7 segundos
+        const duration = 3 + Math.random() * 5;
+        div.style.animationDuration = `${duration}s`;
+        div.style.animationDelay = `${Math.random() * 5}s`;
+        
+        // Dibujar la forma y color usando CSS o canvas interno? Para simplificar, usaremos SVG inline o div con estilos.
+        // Dado que necesitamos formas geométricas con color, usaremos un canvas interno dentro del div (más fiable)
+        // Creamos un canvas offscreen o directamente un canvas dentro del div.
+        const canvasRain = document.createElement('canvas');
+        canvasRain.width = size;
+        canvasRain.height = size;
+        const ctxRain = canvasRain.getContext('2d');
+        
+        // Dibujar la forma según el alimento
+        const shape = food.shape;
+        const color = food.color;
+        const center = size/2;
+        const rad = size/2 * 0.8;
+        
+        ctxRain.clearRect(0, 0, size, size);
+        ctxRain.fillStyle = color;
+        ctxRain.shadowBlur = 0;
+        
+        if(shape === 'circle') {
+            ctxRain.beginPath();
+            ctxRain.arc(center, center, rad, 0, Math.PI*2);
+            ctxRain.fill();
+        } else if(shape === 'square') {
+            const side = rad * 1.4;
+            ctxRain.fillRect(center - side/2, center - side/2, side, side);
+        } else if(shape === 'triangle') {
+            const altura = rad * 1.6;
+            ctxRain.beginPath();
+            ctxRain.moveTo(center, center - altura/2);
+            ctxRain.lineTo(center - rad, center + altura/2);
+            ctxRain.lineTo(center + rad, center + altura/2);
+            ctxRain.fill();
+        } else if(shape === 'diamond') {
+            ctxRain.beginPath();
+            ctxRain.moveTo(center, center - rad);
+            ctxRain.lineTo(center + rad, center);
+            ctxRain.lineTo(center, center + rad);
+            ctxRain.lineTo(center - rad, center);
+            ctxRain.fill();
         }
+        
+        // Si es comida chatarra, añadir una X
+        if(BAD_FOODS.some(b => b.id === food.id)) {
+            ctxRain.strokeStyle = 'black';
+            ctxRain.lineWidth = 2;
+            ctxRain.beginPath();
+            ctxRain.moveTo(center - rad/1.5, center - rad/1.5);
+            ctxRain.lineTo(center + rad/1.5, center + rad/1.5);
+            ctxRain.stroke();
+            ctxRain.beginPath();
+            ctxRain.moveTo(center + rad/1.5, center - rad/1.5);
+            ctxRain.lineTo(center - rad/1.5, center + rad/1.5);
+            ctxRain.stroke();
+        } else {
+            // Añadir brillo a saludables
+            ctxRain.fillStyle = 'rgba(255,255,255,0.6)';
+            ctxRain.beginPath();
+            ctxRain.arc(center - rad/3, center - rad/3, rad/5, 0, Math.PI*2);
+            ctxRain.fill();
+        }
+        
+        div.appendChild(canvasRain);
+        return div;
+    }
+    
+    function startRainEffect() {
+        const menuDiv = document.getElementById('pixelMenu');
+        // Limpiar elementos anteriores si existen
+        const existingRain = menuDiv.querySelectorAll('.food-rain');
+        existingRain.forEach(el => el.remove());
+        
+        // Generar 50 elementos de comida cayendo
+        for(let i = 0; i < 60; i++) {
+            const randomFood = ALL_FOODS[Math.floor(Math.random() * ALL_FOODS.length)];
+            const foodElement = createFoodElement(randomFood);
+            menuDiv.appendChild(foodElement);
+        }
+        
+        // Además, generar nuevos elementos periódicamente para mantener la lluvia
+        if(rainInterval) clearInterval(rainInterval);
+        rainInterval = setInterval(() => {
+            if(gameState === 'menu') {
+                const randomFood = ALL_FOODS[Math.floor(Math.random() * ALL_FOODS.length)];
+                const newFood = createFoodElement(randomFood);
+                document.getElementById('pixelMenu').appendChild(newFood);
+                // Limpiar elementos que ya pasaron (opcional, pero para no saturar)
+                const allItems = document.querySelectorAll('.food-rain');
+                if(allItems.length > 100) {
+                    allItems[0].remove();
+                }
+            }
+        }, 600);
+    }
+    
+    function stopRainEffect() {
+        if(rainInterval) clearInterval(rainInterval);
+        const menuDiv = document.getElementById('pixelMenu');
+        const rainItems = menuDiv.querySelectorAll('.food-rain');
+        rainItems.forEach(el => el.remove());
     }
     
     // Inicialización
@@ -736,11 +831,11 @@
         
         loadHighScore();
         
-        // Configurar menú pixelado
-        generateMenuSprites();
+        // Iniciar lluvia de comida en el menú
+        startRainEffect();
+        
+        // Configurar botones del menú
         document.getElementById('menuJugar').addEventListener('click', () => {
-            // Sonido opcional (si existieran los archivos)
-            // clickSound.play(); startSound.play(); music.play();
             startGame();
         });
         document.getElementById('menuOpciones').addEventListener('click', () => {
@@ -765,14 +860,14 @@
             if(e.key === 'ArrowRight') keys.ArrowRight = false;
         });
         
-        // Botones de las pantallas de pausa y game over
+        // Botones de pantallas de pausa y game over
         document.getElementById('resumeButton').onclick = resumeGame;
         document.getElementById('restartButton').onclick = () => { startGame(); };
         document.getElementById('playAgainButton').onclick = startGame;
         document.getElementById('menuButton').onclick = returnToMenu;
         document.getElementById('menuButton2').onclick = returnToMenu;
         
-        // Inicializar control táctil
+        // Control táctil del juego
         initTouchControls();
         
         // Ocultar canvas y UI al inicio
