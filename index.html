@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fit Frenzy - Arcade Fitness Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
+        /* RESET Y ESTILOS BASE DEL JUEGO (se mantienen) */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             -webkit-touch-callout: none;
@@ -23,6 +24,7 @@
             min-height: 100vh;
             overflow: hidden;
             color: #f0f0f0;
+            font-family: 'Press Start 2P', monospace;
         }
         
         #gameContainer {
@@ -43,11 +45,12 @@
             background-color: #0f0f25;
             display: block;
             image-rendering: crisp-edges;
-            touch-action: none; /* Evita scroll al tocar el canvas */
+            touch-action: none;
             box-shadow: 0 0 0 2px rgba(58,110,165,0.3);
+            z-index: 5;
         }
         
-        /* UI flotante responsiva */
+        /* UI flotante del juego (se mantiene) */
         #ui {
             position: absolute;
             top: 12px;
@@ -57,7 +60,7 @@
             align-items: flex-start;
             padding: 0 12px;
             pointer-events: none;
-            z-index: 5;
+            z-index: 10;
             gap: 8px;
         }
         
@@ -69,10 +72,12 @@
             backdrop-filter: blur(8px);
             min-width: 80px;
             text-align: center;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.7rem;
         }
         
         #scoreLabel, #intensityLabel, #timeLabel, #healthLabel {
-            font-size: 10px;
+            font-size: 8px;
             letter-spacing: 1px;
         }
         
@@ -84,13 +89,12 @@
         #score, #intensity, #time {
             font-weight: bold;
             color: white;
-            font-size: 1.2rem;
+            font-size: 1rem;
         }
         
         #score { text-shadow: 0 0 5px #64c864; }
         #intensity { color: #ffd700; text-shadow: 0 0 5px #ffd700; }
         
-        /* Barra de vida */
         #healthBar {
             width: 90px;
             height: 12px;
@@ -107,12 +111,12 @@
             transition: width 0.2s ease;
         }
         #healthText {
-            font-size: 10px;
+            font-size: 8px;
             font-weight: bold;
             margin-top: 2px;
         }
         
-        /* Pantallas modales - scroll arreglado para Android */
+        /* Pantallas modales (pausa, game over) */
         .screen {
             position: absolute;
             top: 0;
@@ -131,6 +135,7 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+            font-family: 'Press Start 2P', monospace;
         }
         
         .screen.hidden {
@@ -144,7 +149,8 @@
             padding: 14px 28px;
             margin: 8px;
             border-radius: 60px;
-            font-size: 1rem;
+            font-size: 0.8rem;
+            font-family: 'Press Start 2P', monospace;
             font-weight: bold;
             cursor: pointer;
             transition: 0.1s linear;
@@ -157,101 +163,6 @@
             box-shadow: 0 2px 0 #1a2e46;
         }
         
-        .title {
-            font-size: clamp(28px, 8vw, 48px);
-            margin-bottom: 8px;
-            color: #3a6ea5;
-            text-shadow: 0 0 8px #3a6ea5;
-        }
-        
-        .objects-list {
-            width: 90%;
-            max-width: 500px;
-            max-height: 40vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: rgba(0,0,0,0.5);
-            border-radius: 20px;
-            padding: 12px;
-            margin: 12px 0;
-        }
-        
-        .object-category {
-            margin-bottom: 16px;
-        }
-        
-        .category-title {
-            font-size: 1rem;
-            margin-bottom: 8px;
-            padding: 6px;
-            border-radius: 20px;
-        }
-        
-        .good-category .category-title {
-            background: rgba(100,200,100,0.2);
-            color: #a0f0a0;
-        }
-        .bad-category .category-title {
-            background: rgba(220,70,70,0.2);
-            color: #ffa0a0;
-        }
-        
-        .object-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 6px 12px;
-            font-size: 0.9rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .object-bullet {
-            font-size: 20px;
-            width: 28px;
-            text-align: center;
-        }
-        
-        /* Controles táctiles - se ocultan en móvil */
-        #touchControls {
-            position: absolute;
-            bottom: 25px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            z-index: 10;
-            pointer-events: none;
-        }
-        .touch-button {
-            width: 70px;
-            height: 70px;
-            background: rgba(58,110,165,0.9);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            font-weight: bold;
-            color: white;
-            border: 2px solid white;
-            pointer-events: auto;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            transition: 0.05s linear;
-            touch-action: manipulation;
-        }
-        .touch-button:active {
-            transform: scale(0.92);
-            background: #2d5685;
-        }
-        
-        /* Ocultar botones táctiles en móviles */
-        @media (pointer: coarse) {
-            #touchControls {
-                display: none;
-            }
-        }
-        
-        /* boost */
         .boost-indicator {
             position: absolute;
             top: 30%;
@@ -265,8 +176,9 @@
             z-index: 15;
             display: none;
             white-space: nowrap;
-            font-size: 1rem;
+            font-size: 0.8rem;
             box-shadow: 0 0 15px gold;
+            font-family: 'Press Start 2P', monospace;
         }
         
         .damage-effect {
@@ -290,13 +202,103 @@
             border: 1px solid gold;
         }
         
+        /* ===== NUEVO MENÚ PIXELADO (reemplaza startScreen) ===== */
+        .pixel-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            background: #0b1e3c;
+            overflow: hidden;
+            font-family: 'Press Start 2P', monospace;
+        }
+        
+        .pixel-menu.hidden {
+            display: none;
+        }
+        
+        .menu-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url("fondo.jpeg") no-repeat center center / cover;
+            z-index: 0;
+        }
+        
+        /* Sprites cayendo en el menú */
+        .fruit {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            image-rendering: pixelated;
+            animation: fall linear infinite;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 1;
+        }
+        .cake { background-image: url("cake.png"); }
+        .broccoli { background-image: url("broccoli.png"); }
+        .cookie { background-image: url("cookie.png"); }
+        .proteinna { background-image: url("proteinna.png"); }
+        .dona { background-image: url("dona.png"); }
+        
+        @keyframes fall {
+            0% { transform: translateY(-60px); }
+            100% { transform: translateY(110vh); }
+        }
+        
+        .menu-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1.2);
+            text-align: center;
+            z-index: 10;
+            width: 90%;
+        }
+        
+        .title {
+            font-size: 30px;
+            color: white;
+            margin-bottom: 60px;
+            letter-spacing: 4px;
+            text-shadow: 6px 0 #000, 0 6px #000, 6px 6px #000, 12px 12px #000;
+        }
+        
+        .menu-button {
+            display: block;
+            margin: 25px auto;
+            padding: 18px 35px;
+            font-size: 10px;
+            color: white;
+            background: #1d4ed8;
+            border: 6px solid black;
+            box-shadow: 6px 0 black, 0 6px black, 12px 12px black;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            text-align: center;
+            width: 220px;
+        }
+        
+        .menu-button:hover { background: #3b82f6; }
+        .menu-button:active {
+            transform: translate(6px,6px);
+            box-shadow: 2px 0 black, 0 2px black;
+        }
+        
         /* Ajustes responsivos */
         @media (max-width: 700px), (max-height: 700px) {
-            button { padding: 12px 20px; min-width: 150px; font-size: 0.9rem; }
-            .object-item { font-size: 0.8rem; }
+            .title { font-size: 20px; margin-bottom: 30px; }
+            .menu-button { padding: 12px 20px; font-size: 8px; width: 180px; margin: 15px auto; }
+            .fruit { width: 32px; height: 32px; }
         }
-        @media (max-height: 600px) {
-            .objects-list { max-height: 35vh; }
+        
+        /* Ocultar controles táctiles del juego mientras se muestra el menú (no son necesarios) */
+        #touchControls {
+            display: none;
         }
     </style>
 </head>
@@ -305,7 +307,8 @@
     <canvas id="gameCanvas"></canvas>
     <div id="damageEffect" class="damage-effect"></div>
     
-    <div id="ui">
+    <!-- UI del juego (visible solo durante la partida) -->
+    <div id="ui" style="display: none;">
         <div id="scoreContainer"><div id="scoreLabel">PUNTOS</div><div id="score">0</div></div>
         <div id="centerUI">
             <div id="intensityLabel">INTENSIDAD</div>
@@ -320,44 +323,21 @@
         </div>
     </div>
     
-    <!-- Botones táctiles visibles solo en escritorio/no táctil -->
-    <div id="touchControls">
-        <div class="touch-button" id="leftButton">←</div>
-        <div class="touch-button" id="rightButton">→</div>
-    </div>
     <div id="boostIndicator" class="boost-indicator">⚡ BOOST VELOCIDAD ⚡</div>
     
-    <!-- Pantalla inicio -->
-    <div id="startScreen" class="screen">
-        <h1 class="title">FIT FRENZY</h1>
-        <p class="subtitle" style="margin-bottom: 12px;">¡Come sano, esquiva la trampa!</p>
-        <div class="record-container">
-            <div>🏆 RÉCORD ACTUAL 🏆</div>
-            <div id="startRecordScore" style="font-size: 2rem; font-weight: bold;">0</div>
-            <div id="startRecordDetails" style="font-size: 12px;">Intensidad: 1.0x | Tiempo: 00:00</div>
+    <!-- NUEVO MENÚ PIXELADO (reemplaza la pantalla de inicio anterior) -->
+    <div id="pixelMenu" class="pixel-menu">
+        <div class="menu-background"></div>
+        <!-- Sprites generados por JS -->
+        <div class="menu-content">
+            <div class="title">FIT FRENZY</div>
+            <button class="menu-button" id="menuJugar">JUGAR</button>
+            <button class="menu-button" id="menuOpciones">OPCIONES</button>
+            <button class="menu-button" id="menuSalir">SALIR</button>
         </div>
-        <div class="instructions" style="margin-top: 12px;">🎮 INSTRUCCIONES</div>
-        <div class="controls" style="display: flex; gap: 16px; margin: 8px 0;">
-            <span class="key">← →</span> <span>Mover</span>
-            <span class="key">P</span> <span>Pausa</span>
-        </div>
-        
-        <div class="objects-list">
-            <div class="object-category good-category">
-                <div class="category-title">✅ SALUDABLES (+puntos)</div>
-                <div id="goodItemsList"></div>
-            </div>
-            <div class="object-category bad-category">
-                <div class="category-title">❌ NO SALUDABLES (-salud)</div>
-                <div id="badItemsList"></div>
-            </div>
-        </div>
-        <p class="tip" style="font-size: 0.8rem; margin: 10px;">🔥 Dificultad dinámica: cada 100 puntos aumenta velocidad y cantidad.</p>
-        <button id="startButton">COMENZAR JUEGO</button>
-        <button id="resetRecordButton" style="background: #aa2e2e;">REINICIAR RÉCORD</button>
     </div>
     
-    <!-- Pausa -->
+    <!-- Pantalla de pausa -->
     <div id="pauseScreen" class="screen hidden">
         <h1>⏸ PAUSA</h1>
         <button id="resumeButton">CONTINUAR</button>
@@ -365,7 +345,7 @@
         <button id="menuButton">MENÚ</button>
     </div>
     
-    <!-- Game Over -->
+    <!-- Pantalla de Game Over -->
     <div id="gameOverScreen" class="screen hidden">
         <h1>💀 GAME OVER 💀</h1>
         <p>Puntuación: <span id="finalScore">0</span></p>
@@ -437,7 +417,7 @@
     }
     
     // Variables juego
-    let gameState = 'start';
+    let gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameover'
     let player = {
         x: 0, y: 0, width: 70, height: 35,
         speed: 7, score: 0, health: 100, maxHealth: 100,
@@ -469,10 +449,10 @@
     let objectsPerSpawn = 1;
     let highScore = { score: 0, intensity: 1.0, time: 0 };
     
-    // Teclas virtuales (se usan tanto para teclado como para toque)
+    // Teclas virtuales
     let keys = { ArrowLeft: false, ArrowRight: false };
     
-    // UI elements
+    // Elementos UI
     const scoreEl = document.getElementById('score');
     const intensityEl = document.getElementById('intensity');
     const timeEl = document.getElementById('time');
@@ -480,9 +460,11 @@
     const healthText = document.getElementById('healthText');
     const boostIndicator = document.getElementById('boostIndicator');
     const damageOverlay = document.getElementById('damageEffect');
+    const uiContainer = document.getElementById('ui');
     
     function showDamage() { damageOverlay.style.opacity = '0.5'; setTimeout(()=> damageOverlay.style.opacity='0', 150); }
     function updateUI() {
+        if(gameState !== 'playing') return;
         scoreEl.textContent = player.score;
         let percent = (player.health / player.maxHealth) * 100;
         healthFill.style.width = `${percent}%`;
@@ -517,10 +499,7 @@
             this.rot = 0;
             this.rotSpeed = (Math.random() - 0.5) * 0.1;
         }
-        update() {
-            this.y += this.speedY;
-            this.rot += this.rotSpeed;
-        }
+        update() { this.y += this.speedY; this.rot += this.rotSpeed; }
         draw(ctx) {
             ctx.save();
             ctx.translate(this.x + this.size/2, this.y + this.size/2);
@@ -528,15 +507,10 @@
             ctx.fillStyle = this.color;
             ctx.shadowBlur = this.isGood ? 8 : 0;
             ctx.shadowColor = this.isGood ? this.color : 'transparent';
-            if(this.shape === 'circle') {
-                ctx.beginPath(); ctx.arc(0,0, this.size/2, 0, Math.PI*2); ctx.fill();
-            } else if(this.shape === 'square') {
-                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
-            } else if(this.shape === 'triangle') {
-                ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2, this.size/2); ctx.lineTo(this.size/2, this.size/2); ctx.fill();
-            } else if(this.shape === 'diamond') {
-                ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2,0); ctx.lineTo(0, this.size/2); ctx.lineTo(this.size/2,0); ctx.fill();
-            }
+            if(this.shape === 'circle') { ctx.beginPath(); ctx.arc(0,0, this.size/2, 0, Math.PI*2); ctx.fill(); }
+            else if(this.shape === 'square') { ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size); }
+            else if(this.shape === 'triangle') { ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2, this.size/2); ctx.lineTo(this.size/2, this.size/2); ctx.fill(); }
+            else if(this.shape === 'diamond') { ctx.beginPath(); ctx.moveTo(0, -this.size/2); ctx.lineTo(-this.size/2,0); ctx.lineTo(0, this.size/2); ctx.lineTo(this.size/2,0); ctx.fill(); }
             ctx.shadowBlur = 0;
             if(!this.isGood) {
                 ctx.strokeStyle = 'black'; ctx.lineWidth=2;
@@ -564,10 +538,7 @@
         if(keys.ArrowRight) player.move('right');
         
         spawnCounter++;
-        if(spawnCounter >= spawnRate) {
-            spawnObjects();
-            spawnCounter = 0;
-        }
+        if(spawnCounter >= spawnRate) { spawnObjects(); spawnCounter = 0; }
         updateIntensityByScore();
         
         for(let i=0; i<fallingObjects.length; i++) {
@@ -592,10 +563,7 @@
                 i--;
                 continue;
             }
-            if(obj.isOffscreen()) {
-                fallingObjects.splice(i,1);
-                i--;
-            }
+            if(obj.isOffscreen()) { fallingObjects.splice(i,1); i--; }
         }
         gameTimer++;
         updateUI();
@@ -625,6 +593,8 @@
         document.getElementById('recordDetails').innerHTML = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${recMins.toString().padStart(2,'0')}:${recSecs.toString().padStart(2,'0')}`;
         document.getElementById('newRecordMessage').style.display = isNew ? 'block' : 'none';
         document.getElementById('gameOverScreen').classList.remove('hidden');
+        uiContainer.style.display = 'none';
+        canvas.style.display = 'none';
     }
     
     function resetGame() {
@@ -643,16 +613,29 @@
     function startGame() {
         resetGame();
         gameState = 'playing';
-        document.getElementById('startScreen').classList.add('hidden');
+        // Ocultar menú pixelado y mostrar canvas + UI
+        document.getElementById('pixelMenu').classList.add('hidden');
+        canvas.style.display = 'block';
+        uiContainer.style.display = 'flex';
         document.getElementById('pauseScreen').classList.add('hidden');
         document.getElementById('gameOverScreen').classList.add('hidden');
+        // Asegurar que el canvas tenga el tamaño correcto
+        updateCanvasSize();
     }
     
     function pauseGame() { if(gameState==='playing') { gameState='paused'; document.getElementById('pauseScreen').classList.remove('hidden'); } }
     function resumeGame() { if(gameState==='paused') { gameState='playing'; document.getElementById('pauseScreen').classList.add('hidden'); } }
-    function returnToMenu() { gameState='start'; document.getElementById('startScreen').classList.remove('hidden'); document.getElementById('pauseScreen').classList.add('hidden'); document.getElementById('gameOverScreen').classList.add('hidden'); resetGame(); }
+    function returnToMenu() {
+        gameState = 'menu';
+        canvas.style.display = 'none';
+        uiContainer.style.display = 'none';
+        document.getElementById('pixelMenu').classList.remove('hidden');
+        document.getElementById('pauseScreen').classList.add('hidden');
+        document.getElementById('gameOverScreen').classList.add('hidden');
+        resetGame();
+    }
     
-    // Dibujo
+    // Dibujo del juego
     function drawBackground() {
         const grad = ctx.createLinearGradient(0,0,0,gameHeight);
         grad.addColorStop(0,'#0a0a20');
@@ -682,6 +665,7 @@
     }
     
     function draw() {
+        if(gameState !== 'playing') return;
         drawBackground();
         for(let obj of fallingObjects) obj.draw(ctx);
         drawPlayer();
@@ -691,59 +675,22 @@
     function loadHighScore() {
         const saved = localStorage.getItem('fitFrenzyHigh');
         if(saved) {
-            try {
-                highScore = JSON.parse(saved);
-            } catch(e) {}
-        }
-        document.getElementById('startRecordScore').textContent = highScore.score;
-        let mins = Math.floor(highScore.time / 60);
-        let secs = highScore.time % 60;
-        document.getElementById('startRecordDetails').innerHTML = `Intensidad: ${highScore.intensity.toFixed(1)}x | Tiempo: ${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-    }
-    function resetRecord() {
-        if(confirm('¿Reiniciar récord?')) {
-            highScore = { score: 0, intensity: 1.0, time: 0 };
-            localStorage.setItem('fitFrenzyHigh', JSON.stringify(highScore));
-            loadHighScore();
+            try { highScore = JSON.parse(saved); } catch(e) {}
         }
     }
     
-    function fillFoodLists() {
-        const goodDiv = document.getElementById('goodItemsList');
-        const badDiv = document.getElementById('badItemsList');
-        goodDiv.innerHTML = '';
-        badDiv.innerHTML = '';
-        GOOD_FOODS.forEach(f => {
-            const div = document.createElement('div'); div.className='object-item';
-            div.innerHTML = `<span class="object-bullet" style="color:${f.color}">●</span><span>${f.name} (+${f.value}p)</span>`;
-            goodDiv.appendChild(div);
-        });
-        BAD_FOODS.forEach(f => {
-            const div = document.createElement('div'); div.className='object-item';
-            div.innerHTML = `<span class="object-bullet" style="color:${f.color}">●</span><span>${f.name} (${f.value} salud)</span>`;
-            badDiv.appendChild(div);
-        });
-    }
-    
-    // ----- NUEVO: Control táctil directo sobre el canvas (sin botones) -----
+    // Control táctil directo sobre el canvas (para móviles)
     function initTouchControls() {
         const canvasElem = canvas;
-        // Al tocar, mover según la posición X dentro del canvas
         function handleTouch(e) {
             if(gameState !== 'playing') return;
-            e.preventDefault(); // Evita scroll o zoom
+            e.preventDefault();
             const rect = canvasElem.getBoundingClientRect();
-            const scaleX = gameWidth / rect.width;   // factor de escala del canvas lógico
-            let touchX = 0;
+            const scaleX = gameWidth / rect.width;
             if(e.touches.length > 0) {
-                // Obtener la primera posición táctil relativa al canvas
-                const clientX = e.touches[0].clientX;
-                // Convertir a coordenadas del canvas lógico
-                let canvasX = (clientX - rect.left) * scaleX;
+                let canvasX = (e.touches[0].clientX - rect.left) * scaleX;
                 canvasX = Math.min(Math.max(canvasX, 0), gameWidth);
-                // Mitad del canvas: izquierda o derecha
-                const half = gameWidth / 2;
-                if(canvasX < half) {
+                if(canvasX < gameWidth/2) {
                     keys.ArrowLeft = true;
                     keys.ArrowRight = false;
                 } else {
@@ -752,21 +699,33 @@
                 }
             }
         }
-        
         function handleTouchEnd(e) {
             if(gameState !== 'playing') return;
             e.preventDefault();
             keys.ArrowLeft = false;
             keys.ArrowRight = false;
         }
-        
         canvasElem.addEventListener('touchstart', handleTouch, { passive: false });
         canvasElem.addEventListener('touchmove', handleTouch, { passive: false });
         canvasElem.addEventListener('touchend', handleTouchEnd);
         canvasElem.addEventListener('touchcancel', handleTouchEnd);
     }
     
-    // ----- Inicialización -----
+    // Generar sprites del menú (frutas cayendo)
+    function generateMenuSprites() {
+        const items = ["cake","broccoli","cookie","proteinna","dona"];
+        const menuDiv = document.getElementById('pixelMenu');
+        for(let i=0;i<30;i++){
+            let fruit = document.createElement("div");
+            fruit.className = "fruit " + items[Math.floor(Math.random()*items.length)];
+            fruit.style.left = Math.random()*100 + "%";
+            fruit.style.animationDuration = (3 + Math.random()*3) + "s";
+            fruit.style.animationDelay = Math.random()*5 + "s";
+            menuDiv.appendChild(fruit);
+        }
+    }
+    
+    // Inicialización
     function init() {
         canvas = document.getElementById('gameCanvas');
         ctx = canvas.getContext('2d');
@@ -776,9 +735,22 @@
         player.x = gameWidth/2 - player.width/2;
         
         loadHighScore();
-        fillFoodLists();
         
-        // Controles de teclado (siempre activos)
+        // Configurar menú pixelado
+        generateMenuSprites();
+        document.getElementById('menuJugar').addEventListener('click', () => {
+            // Sonido opcional (si existieran los archivos)
+            // clickSound.play(); startSound.play(); music.play();
+            startGame();
+        });
+        document.getElementById('menuOpciones').addEventListener('click', () => {
+            alert("Opciones próximamente...");
+        });
+        document.getElementById('menuSalir').addEventListener('click', () => {
+            alert("Gracias por jugar Fit Frenzy");
+        });
+        
+        // Controles de teclado
         window.addEventListener('keydown', (e) => {
             if(e.key === 'ArrowLeft') keys.ArrowLeft = true;
             if(e.key === 'ArrowRight') keys.ArrowRight = true;
@@ -793,32 +765,21 @@
             if(e.key === 'ArrowRight') keys.ArrowRight = false;
         });
         
-        // Botones táctiles solo para escritorio (no se ocultan con CSS en desktop)
-        const leftBtn = document.getElementById('leftButton');
-        const rightBtn = document.getElementById('rightButton');
-        if(leftBtn && rightBtn) {
-            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
-            leftBtn.addEventListener('touchend', () => { keys.ArrowLeft = false; });
-            leftBtn.addEventListener('mousedown', () => { keys.ArrowLeft = true; });
-            leftBtn.addEventListener('mouseup', () => { keys.ArrowLeft = false; });
-            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
-            rightBtn.addEventListener('touchend', () => { keys.ArrowRight = false; });
-            rightBtn.addEventListener('mousedown', () => { keys.ArrowRight = true; });
-            rightBtn.addEventListener('mouseup', () => { keys.ArrowRight = false; });
-        }
-        
-        // Activar controles táctiles sobre el canvas (para móviles)
-        initTouchControls();
-        
-        // Botones de UI
-        document.getElementById('startButton').onclick = startGame;
-        document.getElementById('resetRecordButton').onclick = resetRecord;
+        // Botones de las pantallas de pausa y game over
         document.getElementById('resumeButton').onclick = resumeGame;
         document.getElementById('restartButton').onclick = () => { startGame(); };
         document.getElementById('playAgainButton').onclick = startGame;
         document.getElementById('menuButton').onclick = returnToMenu;
         document.getElementById('menuButton2').onclick = returnToMenu;
         
+        // Inicializar control táctil
+        initTouchControls();
+        
+        // Ocultar canvas y UI al inicio
+        canvas.style.display = 'none';
+        uiContainer.style.display = 'none';
+        
+        // Bucle de animación
         function animate() {
             updateGame();
             draw();
