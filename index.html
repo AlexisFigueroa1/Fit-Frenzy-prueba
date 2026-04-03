@@ -23,7 +23,6 @@
             min-height: 100vh;
             overflow: hidden;
             color: #f0f0f0;
-            /* Eliminado touch-action restrictivo para permitir scroll en Android */
         }
         
         #gameContainer {
@@ -44,7 +43,7 @@
             background-color: #0f0f25;
             display: block;
             image-rendering: crisp-edges;
-            touch-action: none; /* Solo el canvas no debe desplazar la página */
+            touch-action: none; /* Evita scroll al tocar el canvas */
             box-shadow: 0 0 0 2px rgba(58,110,165,0.3);
         }
         
@@ -122,7 +121,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start; /* Cambiado para permitir scroll desde arriba */
+            justify-content: flex-start;
             align-items: center;
             background-color: rgba(10, 10, 26, 0.98);
             backdrop-filter: blur(8px);
@@ -130,7 +129,7 @@
             text-align: center;
             padding: 20px;
             overflow-y: auto;
-            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS y Android */
+            -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
         }
         
@@ -211,7 +210,7 @@
             text-align: center;
         }
         
-        /* Controles táctiles */
+        /* Controles táctiles - se ocultan en móvil */
         #touchControls {
             position: absolute;
             bottom: 25px;
@@ -243,6 +242,13 @@
         .touch-button:active {
             transform: scale(0.92);
             background: #2d5685;
+        }
+        
+        /* Ocultar botones táctiles en móviles */
+        @media (pointer: coarse) {
+            #touchControls {
+                display: none;
+            }
         }
         
         /* boost */
@@ -286,7 +292,6 @@
         
         /* Ajustes responsivos */
         @media (max-width: 700px), (max-height: 700px) {
-            .touch-button { width: 60px; height: 60px; font-size: 32px; }
             button { padding: 12px 20px; min-width: 150px; font-size: 0.9rem; }
             .object-item { font-size: 0.8rem; }
         }
@@ -315,6 +320,7 @@
         </div>
     </div>
     
+    <!-- Botones táctiles visibles solo en escritorio/no táctil -->
     <div id="touchControls">
         <div class="touch-button" id="leftButton">←</div>
         <div class="touch-button" id="rightButton">→</div>
@@ -377,7 +383,7 @@
 </div>
 
 <script>
-    // ========== LISTAS DE ALIMENTOS (CORREGIDAS) ==========
+    // ========== LISTAS DE ALIMENTOS ==========
     const GOOD_FOODS = [
         { id: 'creatina', name: 'Creatina', color: '#c084fc', value: 20, shape: 'diamond', size: 28 },
         { id: 'proteina', name: 'Proteína', color: '#d878d8', value: 15, shape: 'circle', size: 25 },
@@ -402,17 +408,15 @@
         { id: 'pastel', name: 'Pastel', color: '#fdba74', value: -20, shape: 'triangle', size: 28 }
     ];
     
-    // Config responsive: dimensiones dinámicas
+    // Config responsive
     let canvas, ctx;
-    let gameWidth = 800;   // base lógica
-    let gameHeight = 1000;  // base lógica
-    let actualScale = 1;
+    let gameWidth = 800;
+    let gameHeight = 1000;
     
     function updateCanvasSize() {
         const maxW = window.innerWidth;
         const maxH = window.innerHeight;
-        // Relación de aspecto 0.8 (ancho/alto)
-        const targetRatio = 800/1000; // 0.8
+        const targetRatio = 800/1000;
         let newWidth = maxW;
         let newHeight = newWidth / targetRatio;
         if(newHeight > maxH) {
@@ -425,9 +429,7 @@
         canvas.height = gameHeight;
         canvas.style.width = `${gameWidth}px`;
         canvas.style.height = `${gameHeight}px`;
-        actualScale = gameWidth / 800;
         
-        // Reposicionar jugador si existe
         if(player) {
             player.x = Math.min(Math.max(player.x, 0), gameWidth - player.width);
             player.y = gameHeight - 90;
@@ -435,7 +437,7 @@
     }
     
     // Variables juego
-    let gameState = 'start'; // start, playing, paused, gameover
+    let gameState = 'start';
     let player = {
         x: 0, y: 0, width: 70, height: 35,
         speed: 7, score: 0, health: 100, maxHealth: 100,
@@ -462,12 +464,12 @@
     let fallingObjects = [];
     let spawnCounter = 0;
     let spawnRate = 70;
-    let gameTimer = 0; // frames (60fps aprox)
+    let gameTimer = 0;
     let gameIntensity = 1.0;
     let objectsPerSpawn = 1;
     let highScore = { score: 0, intensity: 1.0, time: 0 };
     
-    // keys
+    // Teclas virtuales (se usan tanto para teclado como para toque)
     let keys = { ArrowLeft: false, ArrowRight: false };
     
     // UI elements
@@ -558,11 +560,9 @@
     function updateGame() {
         if(gameState !== 'playing') return;
         player.update();
-        // movimiento
         if(keys.ArrowLeft) player.move('left');
         if(keys.ArrowRight) player.move('right');
         
-        // spawn
         spawnCounter++;
         if(spawnCounter >= spawnRate) {
             spawnObjects();
@@ -570,7 +570,6 @@
         }
         updateIntensityByScore();
         
-        // actualizar objetos
         for(let i=0; i<fallingObjects.length; i++) {
             const obj = fallingObjects[i];
             obj.update();
@@ -578,7 +577,6 @@
             const playerBounds = player.getBounds();
             if(bounds.x < playerBounds.x+playerBounds.width && bounds.x+bounds.width > playerBounds.x &&
                bounds.y < playerBounds.y+playerBounds.height && bounds.y+bounds.height > playerBounds.y) {
-                // colisión
                 if(obj.isGood) {
                     player.score += obj.value;
                     if(Math.random() < 0.2) {
@@ -587,7 +585,7 @@
                         setTimeout(()=> boostIndicator.style.display='none', 1000);
                     }
                 } else {
-                    player.takeDamage(obj.value); // valor negativo
+                    player.takeDamage(obj.value);
                     if(player.health <= 0) gameOver();
                 }
                 fallingObjects.splice(i,1);
@@ -689,7 +687,7 @@
         drawPlayer();
     }
     
-    // cargar record
+    // Cargar récord
     function loadHighScore() {
         const saved = localStorage.getItem('fitFrenzyHigh');
         if(saved) {
@@ -727,7 +725,48 @@
         });
     }
     
-    // eventos y bucle
+    // ----- NUEVO: Control táctil directo sobre el canvas (sin botones) -----
+    function initTouchControls() {
+        const canvasElem = canvas;
+        // Al tocar, mover según la posición X dentro del canvas
+        function handleTouch(e) {
+            if(gameState !== 'playing') return;
+            e.preventDefault(); // Evita scroll o zoom
+            const rect = canvasElem.getBoundingClientRect();
+            const scaleX = gameWidth / rect.width;   // factor de escala del canvas lógico
+            let touchX = 0;
+            if(e.touches.length > 0) {
+                // Obtener la primera posición táctil relativa al canvas
+                const clientX = e.touches[0].clientX;
+                // Convertir a coordenadas del canvas lógico
+                let canvasX = (clientX - rect.left) * scaleX;
+                canvasX = Math.min(Math.max(canvasX, 0), gameWidth);
+                // Mitad del canvas: izquierda o derecha
+                const half = gameWidth / 2;
+                if(canvasX < half) {
+                    keys.ArrowLeft = true;
+                    keys.ArrowRight = false;
+                } else {
+                    keys.ArrowLeft = false;
+                    keys.ArrowRight = true;
+                }
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            if(gameState !== 'playing') return;
+            e.preventDefault();
+            keys.ArrowLeft = false;
+            keys.ArrowRight = false;
+        }
+        
+        canvasElem.addEventListener('touchstart', handleTouch, { passive: false });
+        canvasElem.addEventListener('touchmove', handleTouch, { passive: false });
+        canvasElem.addEventListener('touchend', handleTouchEnd);
+        canvasElem.addEventListener('touchcancel', handleTouchEnd);
+    }
+    
+    // ----- Inicialización -----
     function init() {
         canvas = document.getElementById('gameCanvas');
         ctx = canvas.getContext('2d');
@@ -739,7 +778,7 @@
         loadHighScore();
         fillFoodLists();
         
-        // controles teclado
+        // Controles de teclado (siempre activos)
         window.addEventListener('keydown', (e) => {
             if(e.key === 'ArrowLeft') keys.ArrowLeft = true;
             if(e.key === 'ArrowRight') keys.ArrowRight = true;
@@ -754,18 +793,24 @@
             if(e.key === 'ArrowRight') keys.ArrowRight = false;
         });
         
-        // táctil
+        // Botones táctiles solo para escritorio (no se ocultan con CSS en desktop)
         const leftBtn = document.getElementById('leftButton');
         const rightBtn = document.getElementById('rightButton');
-        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
-        leftBtn.addEventListener('touchend', () => { keys.ArrowLeft = false; });
-        leftBtn.addEventListener('mousedown', () => { keys.ArrowLeft = true; });
-        leftBtn.addEventListener('mouseup', () => { keys.ArrowLeft = false; });
-        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
-        rightBtn.addEventListener('touchend', () => { keys.ArrowRight = false; });
-        rightBtn.addEventListener('mousedown', () => { keys.ArrowRight = true; });
-        rightBtn.addEventListener('mouseup', () => { keys.ArrowRight = false; });
+        if(leftBtn && rightBtn) {
+            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowLeft = true; });
+            leftBtn.addEventListener('touchend', () => { keys.ArrowLeft = false; });
+            leftBtn.addEventListener('mousedown', () => { keys.ArrowLeft = true; });
+            leftBtn.addEventListener('mouseup', () => { keys.ArrowLeft = false; });
+            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.ArrowRight = true; });
+            rightBtn.addEventListener('touchend', () => { keys.ArrowRight = false; });
+            rightBtn.addEventListener('mousedown', () => { keys.ArrowRight = true; });
+            rightBtn.addEventListener('mouseup', () => { keys.ArrowRight = false; });
+        }
         
+        // Activar controles táctiles sobre el canvas (para móviles)
+        initTouchControls();
+        
+        // Botones de UI
         document.getElementById('startButton').onclick = startGame;
         document.getElementById('resetRecordButton').onclick = resetRecord;
         document.getElementById('resumeButton').onclick = resumeGame;
