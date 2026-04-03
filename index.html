@@ -23,7 +23,7 @@
             min-height: 100vh;
             overflow: hidden;
             color: #f0f0f0;
-            touch-action: pan-x pan-y; /* permitir scroll solo si es necesario, pero evitamos zoom */
+            /* Eliminado touch-action restrictivo para permitir scroll en Android */
         }
         
         #gameContainer {
@@ -44,7 +44,7 @@
             background-color: #0f0f25;
             display: block;
             image-rendering: crisp-edges;
-            touch-action: none;
+            touch-action: none; /* Solo el canvas no debe desplazar la página */
             box-shadow: 0 0 0 2px rgba(58,110,165,0.3);
         }
         
@@ -113,7 +113,7 @@
             margin-top: 2px;
         }
         
-        /* Pantallas modales */
+        /* Pantallas modales - scroll arreglado para Android */
         .screen {
             position: absolute;
             top: 0;
@@ -122,7 +122,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start; /* Cambiado para permitir scroll desde arriba */
             align-items: center;
             background-color: rgba(10, 10, 26, 0.98);
             backdrop-filter: blur(8px);
@@ -130,6 +130,8 @@
             text-align: center;
             padding: 20px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS y Android */
+            overscroll-behavior: contain;
         }
         
         .screen.hidden {
@@ -168,6 +170,7 @@
             max-width: 500px;
             max-height: 40vh;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             background: rgba(0,0,0,0.5);
             border-radius: 20px;
             padding: 12px;
@@ -281,6 +284,7 @@
             border: 1px solid gold;
         }
         
+        /* Ajustes responsivos */
         @media (max-width: 700px), (max-height: 700px) {
             .touch-button { width: 60px; height: 60px; font-size: 32px; }
             button { padding: 12px 20px; min-width: 150px; font-size: 0.9rem; }
@@ -405,7 +409,6 @@
     let actualScale = 1;
     
     function updateCanvasSize() {
-        const container = document.getElementById('gameContainer');
         const maxW = window.innerWidth;
         const maxH = window.innerHeight;
         // Relación de aspecto 0.8 (ancho/alto)
@@ -422,7 +425,13 @@
         canvas.height = gameHeight;
         canvas.style.width = `${gameWidth}px`;
         canvas.style.height = `${gameHeight}px`;
-        actualScale = gameWidth / 800; // referencia para ajustes menores
+        actualScale = gameWidth / 800;
+        
+        // Reposicionar jugador si existe
+        if(player) {
+            player.x = Math.min(Math.max(player.x, 0), gameWidth - player.width);
+            player.y = gameHeight - 90;
+        }
     }
     
     // Variables juego
