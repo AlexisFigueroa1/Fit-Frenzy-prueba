@@ -202,7 +202,7 @@
             border: 1px solid gold;
         }
         
-        /* ===== NUEVO MENÚ PIXELADO CON LLUVIA DE COMIDA ===== */
+        /* ===== MENÚ PIXELADO CON LLUVIA DE COMIDA ===== */
         .pixel-menu {
             position: absolute;
             top: 0;
@@ -319,7 +319,6 @@
     <!-- MENÚ PIXELADO CON LLUVIA DE COMIDA -->
     <div id="pixelMenu" class="pixel-menu">
         <div class="menu-background"></div>
-        <!-- Aquí se generarán dinámicamente los elementos de comida cayendo -->
         <div class="menu-content">
             <div class="title">FIT FRENZY</div>
             <button class="menu-button" id="menuJugar">JUGAR</button>
@@ -354,7 +353,167 @@
 </div>
 
 <script>
-    // ========== LISTAS DE ALIMENTOS (mismas que en el juego) ==========
+    // ======================== SISTEMA DE SONIDOS (Web Audio API) ========================
+    let audioCtx = null;
+    let bgMusicNode = null;
+    let bgMusicGain = null;
+    let isAudioAllowed = false;
+    let currentMusicInterval = null;
+
+    // Inicializar AudioContext (se activa con la primera interacción del usuario)
+    function initAudio() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        bgMusicGain = audioCtx.createGain();
+        bgMusicGain.gain.value = 0.3; // volumen música fondo
+        bgMusicGain.connect(audioCtx.destination);
+    }
+
+    // Reproducir un sonido de "clic" (botones)
+    function playClickSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.value = 0.2;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.2);
+        osc.stop(now + 0.2);
+    }
+
+    // Sonido de inicio del juego (fanfarria)
+    function playStartSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'square';
+        osc1.frequency.value = 523.25; // Do5
+        gain1.gain.value = 0.15;
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start();
+        gain1.gain.exponentialRampToValueAtTime(0.00001, now + 0.3);
+        osc1.stop(now + 0.3);
+        
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.value = 659.25; // Mi5
+        gain2.gain.value = 0.15;
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.00001, now + 0.45);
+        osc2.stop(now + 0.45);
+    }
+
+    // Sonido al recolectar comida buena (ding)
+    function playGoodCollectSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1046.50; // Do6
+        gain.gain.value = 0.1;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.15);
+        osc.stop(now + 0.15);
+    }
+
+    // Sonido al recibir daño (buzz grave)
+    function playDamageSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = 220;
+        gain.gain.value = 0.2;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.25);
+        osc.stop(now + 0.25);
+    }
+
+    // Sonido Game Over
+    function playGameOverSound() {
+        if (!audioCtx || !isAudioAllowed) return;
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 3; i++) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.value = 440 - i * 100;
+            gain.gain.value = 0.15;
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + i * 0.1 + 0.3);
+            osc.stop(now + i * 0.1 + 0.3);
+        }
+    }
+
+    // Música de fondo (loop con sintetizador simple)
+    let musicInterval = null;
+    function startBackgroundMusic() {
+        if (!audioCtx || !isAudioAllowed) return;
+        stopBackgroundMusic();
+        let step = 0;
+        const notes = [261.63, 293.66, 329.63, 261.63, 261.63, 293.66, 329.63, 261.63]; // Frase simple
+        musicInterval = setInterval(() => {
+            if (gameState !== 'playing') return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.value = notes[step % notes.length];
+            gain.gain.value = 0.08;
+            osc.connect(gain);
+            gain.connect(bgMusicGain);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.4);
+            osc.stop(now + 0.4);
+            step++;
+        }, 500);
+    }
+
+    function stopBackgroundMusic() {
+        if (musicInterval) {
+            clearInterval(musicInterval);
+            musicInterval = null;
+        }
+    }
+
+    // Activar audio en el primer clic del usuario
+    function enableAudioAndPlayClick(e) {
+        if (isAudioAllowed) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().then(() => {
+                isAudioAllowed = true;
+                playClickSound();
+            });
+        } else {
+            isAudioAllowed = true;
+            playClickSound();
+        }
+        // Remover listener después de activar
+        document.removeEventListener('click', enableAudioAndPlayClick);
+        document.removeEventListener('touchstart', enableAudioAndPlayClick);
+    }
+    document.addEventListener('click', enableAudioAndPlayClick);
+    document.addEventListener('touchstart', enableAudioAndPlayClick);
+
+    // ========== LISTAS DE ALIMENTOS ==========
     const GOOD_FOODS = [
         { id: 'creatina', name: 'Creatina', color: '#c084fc', value: 20, shape: 'diamond', size: 28 },
         { id: 'proteina', name: 'Proteína', color: '#d878d8', value: 15, shape: 'circle', size: 25 },
@@ -379,10 +538,9 @@
         { id: 'pastel', name: 'Pastel', color: '#fdba74', value: -20, shape: 'triangle', size: 28 }
     ];
     
-    // Unir todas las comidas para la lluvia (ambas listas)
     const ALL_FOODS = [...GOOD_FOODS, ...BAD_FOODS];
     
-    // Config responsive del canvas (juego)
+    // Config responsive
     let canvas, ctx;
     let gameWidth = 800;
     let gameHeight = 1000;
@@ -411,7 +569,7 @@
     }
     
     // Variables juego
-    let gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameover'
+    let gameState = 'menu';
     let player = {
         x: 0, y: 0, width: 70, height: 35,
         speed: 7, score: 0, health: 100, maxHealth: 100,
@@ -442,8 +600,6 @@
     let gameIntensity = 1.0;
     let objectsPerSpawn = 1;
     let highScore = { score: 0, intensity: 1.0, time: 0 };
-    
-    // Teclas virtuales
     let keys = { ArrowLeft: false, ArrowRight: false };
     
     // Elementos UI
@@ -544,6 +700,7 @@
                bounds.y < playerBounds.y+playerBounds.height && bounds.y+bounds.height > playerBounds.y) {
                 if(obj.isGood) {
                     player.score += obj.value;
+                    playGoodCollectSound(); // Sonido al recoger comida buena
                     if(Math.random() < 0.2) {
                         player.applyBoost();
                         boostIndicator.style.display = 'block';
@@ -551,6 +708,7 @@
                     }
                 } else {
                     player.takeDamage(obj.value);
+                    playDamageSound(); // Sonido al recibir daño
                     if(player.health <= 0) gameOver();
                 }
                 fallingObjects.splice(i,1);
@@ -566,6 +724,8 @@
     
     function gameOver() {
         gameState = 'gameover';
+        playGameOverSound();
+        stopBackgroundMusic();
         const finalScore = player.score;
         const finalIntensity = gameIntensity;
         const finalTimeSec = Math.floor(gameTimer / 60);
@@ -607,6 +767,8 @@
     function startGame() {
         resetGame();
         gameState = 'playing';
+        playStartSound();
+        startBackgroundMusic();
         document.getElementById('pixelMenu').classList.add('hidden');
         canvas.style.display = 'block';
         uiContainer.style.display = 'flex';
@@ -615,10 +777,11 @@
         updateCanvasSize();
     }
     
-    function pauseGame() { if(gameState==='playing') { gameState='paused'; document.getElementById('pauseScreen').classList.remove('hidden'); } }
-    function resumeGame() { if(gameState==='paused') { gameState='playing'; document.getElementById('pauseScreen').classList.add('hidden'); } }
+    function pauseGame() { if(gameState==='playing') { gameState='paused'; stopBackgroundMusic(); document.getElementById('pauseScreen').classList.remove('hidden'); } }
+    function resumeGame() { if(gameState==='paused') { gameState='playing'; startBackgroundMusic(); document.getElementById('pauseScreen').classList.add('hidden'); } }
     function returnToMenu() {
         gameState = 'menu';
+        stopBackgroundMusic();
         canvas.style.display = 'none';
         uiContainer.style.display = 'none';
         document.getElementById('pixelMenu').classList.remove('hidden');
@@ -663,7 +826,6 @@
         drawPlayer();
     }
     
-    // Cargar récord
     function loadHighScore() {
         const saved = localStorage.getItem('fitFrenzyHigh');
         if(saved) {
@@ -671,7 +833,6 @@
         }
     }
     
-    // Control táctil directo sobre el canvas (para móviles)
     function initTouchControls() {
         const canvasElem = canvas;
         function handleTouch(e) {
@@ -703,31 +864,23 @@
         canvasElem.addEventListener('touchcancel', handleTouchEnd);
     }
     
-    // ========== EFECTO DE LLUVIA DE COMIDA EN EL MENÚ ==========
+    // Lluvia de comida en el menú
     let rainInterval = null;
-    
     function createFoodElement(food) {
         const div = document.createElement('div');
         div.className = 'food-rain';
-        // Tamaño entre 25 y 45px
         const size = 30 + Math.random() * 20;
         div.style.width = `${size}px`;
         div.style.height = `${size}px`;
         div.style.left = Math.random() * 100 + '%';
-        // Duración entre 3 y 7 segundos
         const duration = 3 + Math.random() * 5;
         div.style.animationDuration = `${duration}s`;
         div.style.animationDelay = `${Math.random() * 5}s`;
         
-        // Dibujar la forma y color usando CSS o canvas interno? Para simplificar, usaremos SVG inline o div con estilos.
-        // Dado que necesitamos formas geométricas con color, usaremos un canvas interno dentro del div (más fiable)
-        // Creamos un canvas offscreen o directamente un canvas dentro del div.
         const canvasRain = document.createElement('canvas');
         canvasRain.width = size;
         canvasRain.height = size;
         const ctxRain = canvasRain.getContext('2d');
-        
-        // Dibujar la forma según el alimento
         const shape = food.shape;
         const color = food.color;
         const center = size/2;
@@ -760,7 +913,6 @@
             ctxRain.fill();
         }
         
-        // Si es comida chatarra, añadir una X
         if(BAD_FOODS.some(b => b.id === food.id)) {
             ctxRain.strokeStyle = 'black';
             ctxRain.lineWidth = 2;
@@ -773,7 +925,6 @@
             ctxRain.lineTo(center - rad/1.5, center + rad/1.5);
             ctxRain.stroke();
         } else {
-            // Añadir brillo a saludables
             ctxRain.fillStyle = 'rgba(255,255,255,0.6)';
             ctxRain.beginPath();
             ctxRain.arc(center - rad/3, center - rad/3, rad/5, 0, Math.PI*2);
@@ -786,29 +937,21 @@
     
     function startRainEffect() {
         const menuDiv = document.getElementById('pixelMenu');
-        // Limpiar elementos anteriores si existen
         const existingRain = menuDiv.querySelectorAll('.food-rain');
         existingRain.forEach(el => el.remove());
-        
-        // Generar 50 elementos de comida cayendo
         for(let i = 0; i < 60; i++) {
             const randomFood = ALL_FOODS[Math.floor(Math.random() * ALL_FOODS.length)];
             const foodElement = createFoodElement(randomFood);
             menuDiv.appendChild(foodElement);
         }
-        
-        // Además, generar nuevos elementos periódicamente para mantener la lluvia
         if(rainInterval) clearInterval(rainInterval);
         rainInterval = setInterval(() => {
             if(gameState === 'menu') {
                 const randomFood = ALL_FOODS[Math.floor(Math.random() * ALL_FOODS.length)];
                 const newFood = createFoodElement(randomFood);
                 document.getElementById('pixelMenu').appendChild(newFood);
-                // Limpiar elementos que ya pasaron (opcional, pero para no saturar)
                 const allItems = document.querySelectorAll('.food-rain');
-                if(allItems.length > 100) {
-                    allItems[0].remove();
-                }
+                if(allItems.length > 100) allItems[0].remove();
             }
         }, 600);
     }
@@ -828,22 +971,17 @@
         window.addEventListener('resize', () => { updateCanvasSize(); });
         player.y = gameHeight - 90;
         player.x = gameWidth/2 - player.width/2;
-        
         loadHighScore();
-        
-        // Iniciar lluvia de comida en el menú
         startRainEffect();
         
-        // Configurar botones del menú
-        document.getElementById('menuJugar').addEventListener('click', () => {
-            startGame();
-        });
-        document.getElementById('menuOpciones').addEventListener('click', () => {
-            alert("Opciones próximamente...");
-        });
-        document.getElementById('menuSalir').addEventListener('click', () => {
-            alert("Gracias por jugar Fit Frenzy");
-        });
+        // Botones del menú con sonido
+        const menuJugar = document.getElementById('menuJugar');
+        const menuOpciones = document.getElementById('menuOpciones');
+        const menuSalir = document.getElementById('menuSalir');
+        
+        menuJugar.addEventListener('click', () => { playClickSound(); startGame(); });
+        menuOpciones.addEventListener('click', () => { playClickSound(); alert("Opciones próximamente..."); });
+        menuSalir.addEventListener('click', () => { playClickSound(); alert("Gracias por jugar Fit Frenzy"); });
         
         // Controles de teclado
         window.addEventListener('keydown', (e) => {
@@ -860,21 +998,18 @@
             if(e.key === 'ArrowRight') keys.ArrowRight = false;
         });
         
-        // Botones de pantallas de pausa y game over
-        document.getElementById('resumeButton').onclick = resumeGame;
-        document.getElementById('restartButton').onclick = () => { startGame(); };
-        document.getElementById('playAgainButton').onclick = startGame;
-        document.getElementById('menuButton').onclick = returnToMenu;
-        document.getElementById('menuButton2').onclick = returnToMenu;
+        // Botones de pausa y game over con sonido
+        document.getElementById('resumeButton').onclick = () => { playClickSound(); resumeGame(); };
+        document.getElementById('restartButton').onclick = () => { playClickSound(); startGame(); };
+        document.getElementById('playAgainButton').onclick = () => { playClickSound(); startGame(); };
+        document.getElementById('menuButton').onclick = () => { playClickSound(); returnToMenu(); };
+        document.getElementById('menuButton2').onclick = () => { playClickSound(); returnToMenu(); };
         
-        // Control táctil del juego
         initTouchControls();
         
-        // Ocultar canvas y UI al inicio
         canvas.style.display = 'none';
         uiContainer.style.display = 'none';
         
-        // Bucle de animación
         function animate() {
             updateGame();
             draw();
