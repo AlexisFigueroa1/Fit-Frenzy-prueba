@@ -355,18 +355,26 @@
 <script>
     // ======================== SISTEMA DE SONIDOS (Web Audio API) ========================
     let audioCtx = null;
-    let bgMusicNode = null;
     let bgMusicGain = null;
     let isAudioAllowed = false;
-    let currentMusicInterval = null;
+    let musicInterval = null;
 
     // Inicializar AudioContext (se activa con la primera interacción del usuario)
     function initAudio() {
         if (audioCtx) return;
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         bgMusicGain = audioCtx.createGain();
-        bgMusicGain.gain.value = 0.3; // volumen música fondo
+        bgMusicGain.gain.value = 0.25; // volumen música fondo
         bgMusicGain.connect(audioCtx.destination);
+    }
+
+    // Asegurar que el contexto de audio está activo (útil para móviles)
+    async function ensureAudioContext() {
+        if (!audioCtx) initAudio();
+        if (audioCtx.state === 'suspended') {
+            await audioCtx.resume();
+        }
+        isAudioAllowed = true;
     }
 
     // Reproducir un sonido de "clic" (botones)
@@ -420,7 +428,7 @@
         const gain = audioCtx.createGain();
         osc.type = 'sine';
         osc.frequency.value = 1046.50; // Do6
-        gain.gain.value = 0.1;
+        gain.gain.value = 0.12;
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.start();
@@ -463,7 +471,6 @@
     }
 
     // Música de fondo (loop con sintetizador simple)
-    let musicInterval = null;
     function startBackgroundMusic() {
         if (!audioCtx || !isAudioAllowed) return;
         stopBackgroundMusic();
@@ -471,12 +478,13 @@
         const notes = [261.63, 293.66, 329.63, 261.63, 261.63, 293.66, 329.63, 261.63]; // Frase simple
         musicInterval = setInterval(() => {
             if (gameState !== 'playing') return;
+            if (!audioCtx || audioCtx.state !== 'running') return;
             const now = audioCtx.currentTime;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'triangle';
             osc.frequency.value = notes[step % notes.length];
-            gain.gain.value = 0.08;
+            gain.gain.value = 0.07;
             osc.connect(gain);
             gain.connect(bgMusicGain);
             osc.start();
@@ -700,7 +708,7 @@
                bounds.y < playerBounds.y+playerBounds.height && bounds.y+bounds.height > playerBounds.y) {
                 if(obj.isGood) {
                     player.score += obj.value;
-                    playGoodCollectSound(); // Sonido al recoger comida buena
+                    playGoodCollectSound();
                     if(Math.random() < 0.2) {
                         player.applyBoost();
                         boostIndicator.style.display = 'block';
@@ -708,7 +716,7 @@
                     }
                 } else {
                     player.takeDamage(obj.value);
-                    playDamageSound(); // Sonido al recibir daño
+                    playDamageSound();
                     if(player.health <= 0) gameOver();
                 }
                 fallingObjects.splice(i,1);
@@ -764,7 +772,9 @@
         player.score = 0;
     }
     
-    function startGame() {
+    async function startGame() {
+        // Asegurar que el audio esté activo en móviles
+        await ensureAudioContext();
         resetGame();
         gameState = 'playing';
         playStartSound();
@@ -979,7 +989,11 @@
         const menuOpciones = document.getElementById('menuOpciones');
         const menuSalir = document.getElementById('menuSalir');
         
-        menuJugar.addEventListener('click', () => { playClickSound(); startGame(); });
+        menuJugar.addEventListener('click', async () => { 
+            playClickSound(); 
+            await ensureAudioContext(); 
+            startGame(); 
+        });
         menuOpciones.addEventListener('click', () => { playClickSound(); alert("Opciones próximamente..."); });
         menuSalir.addEventListener('click', () => { playClickSound(); alert("Gracias por jugar Fit Frenzy"); });
         
